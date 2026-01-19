@@ -42,7 +42,7 @@ gem "faraday-retry"
 gem "mailgun-ruby", "~> 1.2"
 
 # OpenAI for AI parsing
-gem "ruby-openai", "~> 7.4"
+gem "ruby-openai", "~> 8.3"
 
 # Phone number formatting and validation
 gem "phonelib"
