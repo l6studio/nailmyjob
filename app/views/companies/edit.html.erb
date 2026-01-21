@@ -6,7 +6,7 @@
     <p class="text-stone-500">Manage your company and preferences.</p>
   </header>
 
-  <%= form_with model: @company, url: company_path, method: :patch do |f| %>
+  <%= form_with model: @company, url: company_path, data: { turbo: false } do |f| %>
     <% if @company.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
         <p class="font-bold text-red-800 mb-2">Please fix these errors:</p>
@@ -40,7 +40,7 @@
             <%= f.file_field :logo, accept: "image/*", class: "block w-full text-sm text-stone-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-stone-100 file:text-stone-700 file:cursor-pointer hover:file:bg-stone-200" %>
             <p class="text-xs text-stone-400 mt-1">PNG, JPG, or WebP up to 2MB</p>
             <% if @company.logo.attached? %>
-              <%= button_to "Remove logo", remove_logo_company_path, method: :delete, data: { turbo_confirm: "Remove logo?" }, class: "text-xs font-medium text-red-600 hover:text-red-700 mt-1" %>
+              <%= link_to "Remove logo", remove_logo_company_path, data: { turbo_method: :delete, turbo_confirm: "Remove logo?" }, class: "text-xs font-medium text-red-600 hover:text-red-700 mt-1" %>
             <% end %>
           </div>
         </div>

@@ -1,0 +1,71 @@
+<h1>Users</h1>
+<p class="subtitle"><%= @users.count %> registered contractors</p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-value"><%= @users.count %></div>
+    <div class="stat-label">Total Users</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value"><%= @users.where("created_at > ?", 7.days.ago).count %></div>
+    <div class="stat-label">Last 7 Days</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value"><%= @users.where("created_at > ?", 30.days.ago).count %></div>
+    <div class="stat-label">Last 30 Days</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value"><%= @users.joins(:quotes).distinct.count %></div>
+    <div class="stat-label">Created Quotes</div>
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>User</th>
+      <th>Company</th>
+      <th>Quotes</th>
+      <th>Jobs</th>
+      <th>Registered</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>
+    <% @users.each do |user| %>
+      <tr>
+        <td>
+          <%= link_to admin_user_path(user) do %>
+            <strong><%= user.full_name %></strong>
+          <% end %>
+          <br>
+          <span class="text-muted text-sm"><%= user.email %></span>
+        </td>
+        <td>
+          <% if user.company.present? %>
+            <%= user.company.name %>
+            <% if user.company.license_number.present? %>
+              <br><span class="text-muted text-sm"><%= user.company.license_number %></span>
+            <% end %>
+          <% else %>
+            <span class="text-muted">—</span>
+          <% end %>
+        </td>
+        <td><%= user.quotes.count %></td>
+        <td><%= user.jobs.count %></td>
+        <td>
+          <%= user.created_at.strftime("%b %d, %Y") %>
+          <br>
+          <span class="text-muted text-sm"><%= time_ago_in_words(user.created_at) %> ago</span>
+        </td>
+        <td>
+          <% if user.admin? %>
+            <span class="badge badge-admin">Admin</span>
+          <% else %>
+            <span class="badge badge-active">Active</span>
+          <% end %>
+        </td>
+      </tr>
+    <% end %>
+  </tbody>
+</table>

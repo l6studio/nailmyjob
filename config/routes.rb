@@ -17,11 +17,15 @@ Rails.application.routes.draw do
   # Root - Landing page for visitors, dashboard for logged-in users
   root "pages#home"
 
+  # Legal pages
+  get "privacy", to: "pages#privacy"
+  get "terms", to: "pages#terms"
+
   # Dashboard
   get "dashboard", to: "dashboard#index"
 
   # Company settings
-  resource :company, only: [:show, :edit, :update] do
+  resource :company, only: [:show, :edit, :create, :update] do
     delete :remove_logo, on: :member
   end
 
@@ -120,6 +124,11 @@ Rails.application.routes.draw do
         end
       end
     end
+  end
+
+  # Admin
+  namespace :admin do
+    resources :users, only: [:index, :show]
   end
 
   # Sidekiq Web UI (admin only)

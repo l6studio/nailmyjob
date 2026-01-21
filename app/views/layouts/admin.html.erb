@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Admin - NailMyJob</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: #f5f5f5;
+        color: #111;
+        font-size: 15px;
+        line-height: 1.5;
+      }
+      
+      a { color: #2d8a6e; text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      
+      .admin-header {
+        background: #111;
+        color: #fff;
+        padding: 16px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      
+      .admin-header .logo {
+        font-family: 'DM Sans', sans-serif;
+        font-weight: 700;
+        font-size: 1.2rem;
+        color: #fff;
+        letter-spacing: -0.02em;
+      }
+      
+      .admin-header .logo span {
+        color: #888;
+        font-weight: 400;
+        margin-left: 8px;
+      }
+      
+      .admin-header nav {
+        display: flex;
+        gap: 24px;
+        align-items: center;
+      }
+      
+      .admin-header nav a {
+        color: #999;
+        font-size: 14px;
+      }
+      
+      .admin-header nav a:hover {
+        color: #fff;
+        text-decoration: none;
+      }
+      
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 32px 24px;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      
+      .subtitle {
+        color: #666;
+        margin-bottom: 32px;
+      }
+      
+      table {
+        width: 100%;
+        background: #fff;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      th, td {
+        padding: 12px 16px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      
+      th {
+        background: #fafafa;
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #666;
+      }
+      
+      tr:last-child td {
+        border-bottom: none;
+      }
+      
+      tr:hover td {
+        background: #fafafa;
+      }
+      
+      .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+      
+      .badge-active {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      
+      .badge-trial {
+        background: #fef3c7;
+        color: #92400e;
+      }
+      
+      .badge-admin {
+        background: #e0e7ff;
+        color: #3730a3;
+      }
+      
+      .stats {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 32px;
+      }
+      
+      .stat {
+        background: #fff;
+        padding: 20px 24px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      }
+      
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #111;
+      }
+      
+      .stat-label {
+        font-size: 13px;
+        color: #666;
+        margin-top: 4px;
+      }
+      
+      .text-muted {
+        color: #999;
+      }
+      
+      .text-sm {
+        font-size: 13px;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <header class="admin-header">
+      <div class="logo">
+        nailmyjob <span>admin</span>
+      </div>
+      <nav>
+        <%= link_to "Users", admin_users_path %>
+        <%= link_to "← Back to App", dashboard_path %>
+        <%= link_to "Sign Out", destroy_user_session_path, data: { turbo_method: :delete } %>
+      </nav>
+    </header>
+    
+    <div class="container">
+      <%= yield %>
+    </div>
+  </body>
+</html>

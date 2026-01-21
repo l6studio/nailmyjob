@@ -1,0 +1,131 @@
+<p style="margin-bottom: 24px;">
+  <%= link_to "← All Users", admin_users_path %>
+</p>
+
+<h1><%= @user.full_name %></h1>
+<p class="subtitle"><%= @user.email %></p>
+
+<div class="stats">
+  <div class="stat">
+    <div class="stat-value"><%= @user.quotes.count %></div>
+    <div class="stat-label">Quotes</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value"><%= @user.jobs.count %></div>
+    <div class="stat-label">Jobs</div>
+  </div>
+  <div class="stat">
+    <div class="stat-value"><%= @user.company&.clients&.count || 0 %></div>
+    <div class="stat-label">Clients</div>
+  </div>
+</div>
+
+<table>
+  <tbody>
+    <tr>
+      <th style="width: 200px;">Email</th>
+      <td><%= @user.email %></td>
+    </tr>
+    <tr>
+      <th>Name</th>
+      <td><%= @user.full_name %></td>
+    </tr>
+    <tr>
+      <th>Phone</th>
+      <td><%= @user.phone.presence || "—" %></td>
+    </tr>
+    <tr>
+      <th>Role</th>
+      <td>
+        <% if @user.admin? %>
+          <span class="badge badge-admin">Admin</span>
+        <% else %>
+          <span class="badge badge-active">Contractor</span>
+        <% end %>
+      </td>
+    </tr>
+    <tr>
+      <th>Registered</th>
+      <td>
+        <%= @user.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+        <span class="text-muted">(<%= time_ago_in_words(@user.created_at) %> ago)</span>
+      </td>
+    </tr>
+    <tr>
+      <th>Last Updated</th>
+      <td><%= @user.updated_at.strftime("%B %d, %Y at %I:%M %p") %></td>
+    </tr>
+  </tbody>
+</table>
+
+<% if @user.company.present? %>
+  <h2 style="margin: 48px 0 16px; font-size: 1.2rem;">Company</h2>
+  
+  <table>
+    <tbody>
+      <tr>
+        <th style="width: 200px;">Company Name</th>
+        <td><%= @user.company.name %></td>
+      </tr>
+      <tr>
+        <th>Email</th>
+        <td><%= @user.company.email.presence || "—" %></td>
+      </tr>
+      <tr>
+        <th>Phone</th>
+        <td><%= @user.company.phone.presence || "—" %></td>
+      </tr>
+      <tr>
+        <th>License Number</th>
+        <td><%= @user.company.license_number.presence || "—" %></td>
+      </tr>
+      <tr>
+        <th>Address</th>
+        <td><%= @user.company.full_address.presence || "—" %></td>
+      </tr>
+      <tr>
+        <th>Labor Markup</th>
+        <td><%= @user.company.default_labor_markup.present? ? "#{@user.company.default_labor_markup}%" : "—" %></td>
+      </tr>
+      <tr>
+        <th>Material Markup</th>
+        <td><%= @user.company.default_material_markup.present? ? "#{@user.company.default_material_markup}%" : "—" %></td>
+      </tr>
+    </tbody>
+  </table>
+<% end %>
+
+<% if @user.quotes.any? %>
+  <h2 style="margin: 48px 0 16px; font-size: 1.2rem;">Recent Quotes</h2>
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Quote #</th>
+        <th>Client</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @user.quotes.includes(:client).order(created_at: :desc).limit(10).each do |quote| %>
+        <tr>
+          <td><%= quote.quote_number %></td>
+          <td><%= quote.client&.name || "—" %></td>
+          <td><%= quote.status&.humanize || "Draft" %></td>
+          <td>
+            <% if quote.total_range_low.present? && quote.total_range_high.present? %>
+              <%= number_to_currency(quote.total_range_low) %> - <%= number_to_currency(quote.total_range_high) %>
+            <% elsif quote.total_range_low.present? %>
+              <%= number_to_currency(quote.total_range_low) %>
+            <% else %>
+              —
+            <% end %>
+          </td>
+          <td><%= quote.created_at.strftime("%b %d, %Y") %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% end %>

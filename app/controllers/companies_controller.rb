@@ -11,15 +11,23 @@ class CompaniesController < ApplicationController
   def edit
   end
 
+  def create
+    @company = Company.new(company_params)
+
+    if @company.save
+      current_user.update(company: @company)
+      redirect_to edit_company_path, notice: "Settings saved.", status: :see_other
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
   def update
     if @company.update(company_params)
       # Associate user with company if not already
       current_user.update(company: @company) if current_user.company.blank?
 
-      respond_to do |format|
-        format.html { redirect_to dashboard_path, notice: "Company settings updated successfully." }
-        format.turbo_stream { flash.now[:notice] = "Company settings updated successfully." }
-      end
+      redirect_to edit_company_path, notice: "Settings saved.", status: :see_other
     else
       render :edit, status: :unprocessable_entity
     end
