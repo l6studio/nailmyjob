@@ -58,21 +58,25 @@ test:
 # Read https://guides.rubyonrails.org/configuring.html#configuring-a-database
 # for a full overview on how database connection configuration can be specified.
 #
+# Production uses DATABASE_URL environment variable (Supabase PostgreSQL)
+# The DATABASE_URL should be the full connection string from Supabase:
+#   postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+#
+# Note: Supabase provides two connection modes:
+#   - Transaction mode (port 6543) - recommended for Rails apps, uses connection pooling
+#   - Session mode (port 5432) - direct connection, use for migrations if needed
+#
 production:
   primary: &primary_production
-    <<: *default
-    database: nailmyjob_production
-    username: nailmyjob
-    password: <%= ENV["NAILMYJOB_DATABASE_PASSWORD"] %>
+    url: <%= ENV["DATABASE_URL"] %>
+    pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+    prepared_statements: false  # Required for Supabase transaction mode (pgbouncer)
   cache:
     <<: *primary_production
-    database: nailmyjob_production_cache
     migrations_paths: db/cache_migrate
   queue:
     <<: *primary_production
-    database: nailmyjob_production_queue
     migrations_paths: db/queue_migrate
   cable:
     <<: *primary_production
-    database: nailmyjob_production_cable
     migrations_paths: db/cable_migrate

@@ -1,23 +1,9 @@
 version: '3.8'
 
-services:
-  db:
-    image: postgres:16-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-nailmyjob}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: nailmyjob_production
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - backend
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-nailmyjob}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+# NOTE: This configuration uses Supabase for PostgreSQL (no local db container)
+# Set DATABASE_URL environment variable with your Supabase connection string
 
+services:
   redis:
     image: redis:7-alpine
     restart: always
@@ -36,8 +22,6 @@ services:
     image: ${IMAGE_TAG:-ghcr.io/nailmyjob/nailmyjob-app:latest}
     restart: always
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     ports:
@@ -48,7 +32,7 @@ services:
       RAILS_SERVE_STATIC_FILES: "true"
       RAILS_LOG_LEVEL: ${RAILS_LOG_LEVEL:-info}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE:?SECRET_KEY_BASE is required}
-      DATABASE_URL: postgres://${POSTGRES_USER:-nailmyjob}:${POSTGRES_PASSWORD}@db:5432/nailmyjob_production
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
       REDIS_URL: redis://redis:6379/0
       APP_HOST: ${APP_HOST:?APP_HOST is required}
       MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
@@ -81,15 +65,13 @@ services:
     image: ${IMAGE_TAG:-ghcr.io/nailmyjob/nailmyjob-app:latest}
     restart: always
     depends_on:
-      db:
-        condition: service_healthy
       redis:
         condition: service_healthy
     environment:
       RAILS_ENV: production
       RAILS_LOG_TO_STDOUT: "true"
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
-      DATABASE_URL: postgres://${POSTGRES_USER:-nailmyjob}:${POSTGRES_PASSWORD}@db:5432/nailmyjob_production
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
       APP_HOST: ${APP_HOST}
       MAILGUN_API_KEY: ${MAILGUN_API_KEY:-}
@@ -138,7 +120,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
   redis_data:
   rails_storage:
   caddy_data:

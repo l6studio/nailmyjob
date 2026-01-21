@@ -6,15 +6,36 @@ This document lists all environment variables used by the NailMyJob application.
 
 These variables **must** be set for the application to run in production.
 
-### Database
+### Database (Supabase PostgreSQL)
+
+Production uses **Supabase** for PostgreSQL hosting. You only need the `DATABASE_URL`.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_HOST` | PostgreSQL host | `db` or `localhost` |
+| `DATABASE_URL` | Supabase connection string | `postgresql://postgres.[ref]:[pass]@aws-0-us-east-1.pooler.supabase.com:6543/postgres` |
+
+#### Getting Your Supabase Connection String
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project
+3. Navigate to **Settings → Database**
+4. Copy the **Connection string (URI)** under "Connection pooling"
+
+**Important Notes:**
+- Use **Transaction mode (port 6543)** for Rails apps - this uses connection pooling via PgBouncer
+- Use **Session mode (port 5432)** only for migrations if needed
+- The app is configured with `prepared_statements: false` for PgBouncer compatibility
+
+#### Local Development
+
+For local development, you can still use individual variables:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_HOST` | PostgreSQL host | `localhost` |
 | `DATABASE_PORT` | PostgreSQL port | `5432` |
-| `DATABASE_USERNAME` | PostgreSQL username | `nailmyjob` |
-| `DATABASE_PASSWORD` | PostgreSQL password | `secure-password` |
-| `DATABASE_URL` | Full database URL (alternative) | `postgres://user:pass@host:5432/db` |
+| `DATABASE_USERNAME` | PostgreSQL username | `postgres` |
+| `DATABASE_PASSWORD` | PostgreSQL password | `password` |
 
 ### Rails
 
@@ -93,10 +114,8 @@ For production file storage (logos, PDFs, etc.).
 For automated deployments, store secrets in Bitwarden Secrets Manager with these IDs:
 
 ```
-# Database
-bws://nailmyjob/DATABASE_PASSWORD
-bws://nailmyjob/POSTGRES_USER
-bws://nailmyjob/POSTGRES_PASSWORD
+# Database (Supabase)
+bws://nailmyjob/DATABASE_URL     # Full Supabase connection string
 
 # Rails
 bws://nailmyjob/SECRET_KEY_BASE
@@ -116,6 +135,20 @@ bws://nailmyjob/AWS_SECRET_ACCESS_KEY
 bws://nailmyjob/AWS_BUCKET
 ```
 
+### GitHub Repository Variables
+
+You'll also need to set these **repository variables** in GitHub (Settings → Secrets and Variables → Actions → Variables):
+
+| Variable | Description |
+|----------|-------------|
+| `BWS_DATABASE_URL_ID` | Bitwarden secret ID for DATABASE_URL |
+| `BWS_SECRET_KEY_BASE_ID` | Bitwarden secret ID for SECRET_KEY_BASE |
+| `BWS_MAILGUN_API_KEY_ID` | Bitwarden secret ID for MAILGUN_API_KEY |
+| `BWS_MAILGUN_DOMAIN_ID` | Bitwarden secret ID for MAILGUN_DOMAIN |
+| `BWS_MAILGUN_SMTP_PASSWORD_ID` | Bitwarden secret ID for MAILGUN_SMTP_PASSWORD |
+| `APP_HOST` | Your app domain (e.g., `app.nailmyjob.com`) |
+| `MAILER_FROM_ADDRESS` | Email from address |
+
 ---
 
 ## Quick Setup
@@ -129,15 +162,27 @@ cp .env.example .env
 # Edit with your values
 nano .env
 
-# Start services
+# Start services (uses local PostgreSQL)
 docker compose up -d
 ```
 
-### Production (Hetzner)
+### Production (Hetzner + Supabase)
+
+Production uses Supabase for PostgreSQL. The deployment is automated via GitHub Actions.
+
+**One-time setup:**
+
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Get your connection string from Settings → Database → Connection pooling (Transaction mode)
+3. Add the connection string to Bitwarden Secrets Manager as `DATABASE_URL`
+4. Add the Bitwarden secret ID as `BWS_DATABASE_URL_ID` in GitHub repository variables
+5. Push to `main` branch - GitHub Actions handles the rest
+
+**Manual deployment (if needed):**
 
 ```bash
-# Pull secrets from Bitwarden
-./scripts/pull-secrets.sh
+# Set DATABASE_URL in .env file
+echo "DATABASE_URL=postgresql://postgres.[ref]:[pass]@aws-0-us-east-1.pooler.supabase.com:6543/postgres" >> .env
 
 # Deploy
 docker compose -f docker-compose.production.yml up -d

@@ -152,9 +152,8 @@ jobs:
           # Fetch all secrets and create .env file
           echo "# Auto-generated from Bitwarden Secrets Manager" > .env.production
           
-          # Database
-          echo "POSTGRES_USER=$(bws secret get ${{ vars.BWS_POSTGRES_USER_ID }} | jq -r '.value')" >> .env.production
-          echo "POSTGRES_PASSWORD=$(bws secret get ${{ vars.BWS_POSTGRES_PASSWORD_ID }} | jq -r '.value')" >> .env.production
+          # Database (Supabase PostgreSQL)
+          echo "DATABASE_URL=$(bws secret get ${{ vars.BWS_DATABASE_URL_ID }} | jq -r '.value')" >> .env.production
           
           # Rails
           echo "SECRET_KEY_BASE=$(bws secret get ${{ vars.BWS_SECRET_KEY_BASE_ID }} | jq -r '.value')" >> .env.production
