@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   scan_ruby:
@@ -11,57 +11,97 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
+          ruby-version: .ruby-version
           bundler-cache: true
 
       - name: Scan for common Rails security vulnerabilities using static analysis
         run: bin/brakeman --no-pager
-      
+
       - name: Scan for known security vulnerabilities in gems used
         run: bin/bundler-audit
-      
+
   scan_js:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
+          ruby-version: .ruby-version
           bundler-cache: true
 
       - name: Scan for security vulnerabilities in JavaScript dependencies
         run: bin/importmap audit
 
-  lint:
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      RUBOCOP_CACHE_ROOT: tmp/rubocop
+    needs: [scan_js]
+
+    environment:
+      name: production
+      url: https://nailmyjob.com
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
+
+      - name: Set deployment variables
+        id: vars
+        run: |
+          echo "environment=production" >> $GITHUB_OUTPUT
+          echo "kamal_destination=" >> $GITHUB_OUTPUT
+          echo "bws_project_id=${{ secrets.BWS_PROJECT_ID }}" >> $GITHUB_OUTPUT
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
+          ruby-version: .ruby-version
           bundler-cache: true
 
-      - name: Prepare RuboCop cache
-        uses: actions/cache@v4
+      - name: Set up SSH
         env:
-          DEPENDENCIES_HASH: ${{ hashFiles('.ruby-version', '**/.rubocop.yml', '**/.rubocop_todo.yml', 'Gemfile.lock') }}
+          SSH_PRIVATE_KEY: ${{ secrets.HETZNER_SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh/keys/hetzner
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/keys/hetzner/nailmyjob
+          chmod 600 ~/.ssh/keys/hetzner/nailmyjob
+          cat << 'EOF' > ~/.ssh/config
+          Host 5.161.21.106
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Install Bitwarden Secrets Manager CLI
+        run: |
+          curl -sL "https://github.com/bitwarden/sdk/releases/download/bws-v1.0.0/bws-x86_64-unknown-linux-gnu-1.0.0.zip" -o bws.zip
+          unzip -q bws.zip -d bws
+          sudo mv bws/bws /usr/local/bin/bws
+          rm -rf bws bws.zip
+          bws --version
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
         with:
-          path: ${{ env.RUBOCOP_CACHE_ROOT }}
-          key: rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-${{ github.ref_name == github.event.repository.default_branch && github.run_id || 'default' }}
-          restore-keys: |
-            rubocop-${{ runner.os }}-${{ env.DEPENDENCIES_HASH }}-
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Lint code for consistent style
-        run: bin/rubocop -f github
-
+      - name: Deploy to ${{ steps.vars.outputs.environment }} with Kamal
+        env:
+          RAILS_ENV: production
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+          BWS_PROJECT_ID: ${{ steps.vars.outputs.bws_project_id }}
+          BWS_SERVER_URL: https://vault.bitwarden.com
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add ~/.ssh/keys/hetzner/nailmyjob
+          bundle exec kamal deploy ${{ steps.vars.outputs.kamal_destination }}

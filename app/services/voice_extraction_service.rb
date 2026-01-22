@@ -44,7 +44,14 @@ class VoiceExtractionService
   end
 
   def extract
-    return mock_extraction if Rails.env.development? && ENV["OPENAI_API_KEY"].blank?
+    if ENV["OPENAI_API_KEY"].blank?
+      if Rails.env.development?
+        return mock_extraction
+      else
+        Rails.logger.error("OPENAI_API_KEY is not configured")
+        return { success: false, error: "AI extraction is not configured. Please set OPENAI_API_KEY." }
+      end
+    end
 
     response = client.chat(
       parameters: {
@@ -67,7 +74,7 @@ class VoiceExtractionService
   private
 
   def client
-    @client ||= OpenAI::Client.new(access_token: ENV.fetch("OPENAI_API_KEY"))
+    @client ||= OpenAI::Client.new(access_token: ENV["OPENAI_API_KEY"])
   end
 
   def handle_response(response)

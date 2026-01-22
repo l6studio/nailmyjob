@@ -5,20 +5,20 @@
 # This script fetches secrets from Bitwarden and creates a .env file
 #
 # Prerequisites:
-#   - BWS CLI installed (https://bitwarden.com/help/secrets-manager-cli/)
-#   - BWS_ACCESS_TOKEN environment variable set
+#   - Kamal CLI installed (https://kamal-deploy.org/)
+#   - BWS_PROJECT_ID environment variable set
 #
 # Usage:
-#   export BWS_ACCESS_TOKEN="your-access-token"
+#   export BWS_PROJECT_ID="your-project-id"
 #   ./scripts/pull-secrets.sh
 # =============================================================================
 
 set -e
 
-# Check for BWS CLI
-if ! command -v bws &> /dev/null; then
-    echo "❌ Error: Bitwarden Secrets Manager CLI (bws) not found"
-    echo "Install it from: https://bitwarden.com/help/secrets-manager-cli/"
+# Check for Kamal CLI
+if ! command -v kamal &> /dev/null; then
+    echo "❌ Error: Kamal CLI not found"
+    echo "Install it from: https://kamal-deploy.org/"
     exit 1
 fi
 
@@ -29,7 +29,17 @@ if [ -z "$BWS_ACCESS_TOKEN" ]; then
     exit 1
 fi
 
+# Check for project ID
+if [ -z "$BWS_PROJECT_ID" ]; then
+    echo "❌ Error: BWS_PROJECT_ID environment variable not set"
+    echo "Get your project ID from Bitwarden Secrets Manager"
+    exit 1
+fi
+
 echo "🔐 Fetching secrets from Bitwarden..."
+
+# Fetch all secrets from Bitwarden Secrets Manager project
+SECRETS=$(kamal secrets fetch --adapter bitwarden-sm "$BWS_PROJECT_ID/all")
 
 # Create .env file
 ENV_FILE="${1:-.env}"
@@ -37,23 +47,14 @@ echo "# Auto-generated from Bitwarden Secrets Manager" > "$ENV_FILE"
 echo "# Generated at: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> "$ENV_FILE"
 echo "" >> "$ENV_FILE"
 
-# Function to fetch a secret
-fetch_secret() {
-    local secret_id=$1
-    local env_name=$2
-    local required=${3:-false}
+# Function to extract a secret
+extract_secret() {
+    local env_name=$1
+    local required=${2:-false}
     
-    if [ -z "$secret_id" ]; then
-        if [ "$required" = true ]; then
-            echo "❌ Error: Secret ID for $env_name not provided"
-            exit 1
-        fi
-        return
-    fi
+    local value=$(kamal secrets extract "$env_name" "$SECRETS" 2>/dev/null)
     
-    local value=$(bws secret get "$secret_id" 2>/dev/null | jq -r '.value' 2>/dev/null)
-    
-    if [ -n "$value" ] && [ "$value" != "null" ]; then
+    if [ -n "$value" ] && [ "$value" != "" ]; then
         echo "$env_name=$value" >> "$ENV_FILE"
         echo "✅ $env_name"
     else
@@ -67,31 +68,37 @@ fetch_secret() {
 }
 
 # =============================================================================
-# Configure your Bitwarden Secret IDs here
+# Extract secrets from Bitwarden (matching .kamal/secrets)
 # =============================================================================
-# Replace these with your actual secret IDs from Bitwarden Secrets Manager
-# You can find these in the Bitwarden web vault under Secrets Manager
 
-# Required secrets
-echo "📦 Fetching required secrets..."
-fetch_secret "${BWS_DATABASE_URL_ID}" "DATABASE_URL" true
-fetch_secret "${BWS_SECRET_KEY_BASE_ID}" "SECRET_KEY_BASE" true
+# Registry credentials
+echo "🔐 Extracting registry credentials..."
+extract_secret "REGISTRY_USERNAME"
+extract_secret "REGISTRY_PASSWORD"
 
-# Email (Mailgun API - no SMTP password needed)
-echo "📧 Fetching email secrets..."
-fetch_secret "${BWS_MAILGUN_API_KEY_ID}" "MAILGUN_API_KEY"
-fetch_secret "${BWS_MAILGUN_DOMAIN_ID}" "MAILGUN_DOMAIN"
+# Rails
+echo "⚙️  Extracting Rails secrets..."
+extract_secret "RAILS_MASTER_KEY" true
+
+# Database (use DATABASE_URL for Supabase, or individual vars for local)
+echo "🗄️  Extracting database secrets..."
+extract_secret "DATABASE_URL" true
+extract_secret "DATABASE_USERNAME"
+extract_secret "DATABASE_PASSWORD"
+extract_secret "DATABASE_HOST"
+extract_secret "DATABASE_PORT"
+extract_secret "DATABASE_NAME"
+
+# Email (Mailgun API)
+echo "📧 Extracting email secrets..."
+extract_secret "MAILGUN_API_KEY"
+extract_secret "MAILGUN_DOMAIN"
+extract_secret "MAILER_FROM_ADDRESS"
 
 # AI Services (optional)
-echo "🤖 Fetching AI service secrets..."
-fetch_secret "${BWS_OPENAI_API_KEY_ID}" "OPENAI_API_KEY"
-fetch_secret "${BWS_DEEPGRAM_API_KEY_ID}" "DEEPGRAM_API_KEY"
-
-# File Storage (optional)
-echo "📁 Fetching storage secrets..."
-fetch_secret "${BWS_AWS_ACCESS_KEY_ID_ID}" "AWS_ACCESS_KEY_ID"
-fetch_secret "${BWS_AWS_SECRET_ACCESS_KEY_ID}" "AWS_SECRET_ACCESS_KEY"
-fetch_secret "${BWS_AWS_BUCKET_ID}" "AWS_BUCKET"
+echo "🤖 Extracting AI service secrets..."
+extract_secret "DEEPGRAM_API_KEY"
+extract_secret "OPENAI_API_KEY"
 
 # =============================================================================
 # Static configuration (not secrets)
@@ -107,15 +114,9 @@ if [ -n "$APP_HOST" ]; then
     echo "APP_HOST=$APP_HOST" >> "$ENV_FILE"
 fi
 
-# Add MAILER_FROM_ADDRESS if provided
-if [ -n "$MAILER_FROM_ADDRESS" ]; then
-    echo "MAILER_FROM_ADDRESS=$MAILER_FROM_ADDRESS" >> "$ENV_FILE"
-fi
-
 echo ""
 echo "✅ Secrets written to $ENV_FILE"
 echo ""
 echo "⚠️  Remember to:"
-echo "   1. Set APP_HOST in your .env file"
-echo "   2. Set MAILER_FROM_ADDRESS in your .env file"
-echo "   3. Keep this file secure and never commit it to git!"
+echo "   1. Set APP_HOST in your .env file (if not already set)"
+echo "   2. Keep this file secure and never commit it to git!"
