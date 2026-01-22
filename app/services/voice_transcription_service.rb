@@ -8,11 +8,18 @@ class VoiceTranscriptionService
   end
 
   def transcribe
-    return mock_transcription if Rails.env.development? && ENV["DEEPGRAM_API_KEY"].blank?
+    if ENV["DEEPGRAM_API_KEY"].blank?
+      if Rails.env.development?
+        return mock_transcription
+      else
+        Rails.logger.error("DEEPGRAM_API_KEY is not configured")
+        return { success: false, error: "Voice transcription is not configured. Please set DEEPGRAM_API_KEY." }
+      end
+    end
 
     response = connection.post do |req|
       req.url DEEPGRAM_API_URL
-      req.headers["Authorization"] = "Token #{ENV.fetch('DEEPGRAM_API_KEY')}"
+      req.headers["Authorization"] = "Token #{ENV['DEEPGRAM_API_KEY']}"
       req.headers["Content-Type"] = content_type
       req.params = transcription_params
       req.body = audio_data
