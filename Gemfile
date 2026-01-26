@@ -51,7 +51,7 @@ gem "phonelib"
 gem "uuid"
 
 # JSON Web Tokens for magic links
-gem "jwt", "~> 2.9"
+gem "jwt", "~> 3.1"
 
 # Rate limiting
 gem "rack-attack"
