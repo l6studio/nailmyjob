@@ -18,7 +18,7 @@ gem "stimulus-rails"
 gem "tailwindcss-rails"
 
 # Authentication
-gem "devise", "~> 4.9"
+gem "devise", "~> 5.0"
 gem "bcrypt", "~> 3.1.7"
 
 # Background job processing
